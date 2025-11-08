@@ -1,0 +1,1 @@
+gunicorn traffic_prediction_api:app
