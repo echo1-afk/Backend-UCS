@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traffic Prediction System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            background: rgba(255,255,255,0.9);
+        }
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 25px;
+            padding: 10px 30px;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .traffic-indicator {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .traffic-low { background-color: #28a745; }
+        .traffic-medium { background-color: #ffc107; }
+        .traffic-high { background-color: #dc3545; }
+        .prediction-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 10px 0;
+        }
+        .map-container {
+            height: 400px;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="card mb-4">
+                    <div class="card-body text-center">
+                        <h1 class="display-4 mb-3">
+                            <i class="fas fa-traffic-light text-primary"></i>
+                            Traffic Prediction System
+                        </h1>
+                        <p class="lead">AI-powered traffic prediction for smart mobility</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Input Section -->
+            <div class="col-lg-4">
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5><i class="fas fa-map-marker-alt"></i> Location Input</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="predictionForm">
+                            <div class="mb-3">
+                                <label for="latitude" class="form-label">Latitude</label>
+                                <input type="number" class="form-control" id="latitude" step="any" 
+                                       placeholder="e.g., 40.7128" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="longitude" class="form-label">Longitude</label>
+                                <input type="number" class="form-control" id="longitude" step="any" 
+                                       placeholder="e.g., -74.0060" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="timestamp" class="form-label">Prediction Time</label>
+                                <input type="datetime-local" class="form-control" id="timestamp" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-search"></i> Predict Traffic
+                            </button>
+                        </form>
+                        
+                        <hr>
+                        
+                        <h6><i class="fas fa-route"></i> Route Prediction</h6>
+                        <button type="button" class="btn btn-outline-primary w-100" onclick="addWaypoint()">
+                            <i class="fas fa-plus"></i> Add Waypoint
+                        </button>
+                        <div id="waypoints" class="mt-3"></div>
+                        <button type="button" class="btn btn-success w-100 mt-3" onclick="predictRoute()">
+                            <i class="fas fa-route"></i> Predict Route
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div class="col-lg-8">
+                <div class="card mb-4">
+                    <div class="card-header bg-success text-white">
+                        <h5><i class="fas fa-chart-line"></i> Prediction Results</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="predictionResults">
+                            <div class="text-center text-muted">
+                                <i class="fas fa-arrow-up fa-3x mb-3"></i>
+                                <p>Enter location details to get traffic predictions</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chart Section -->
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h5><i class="fas fa-chart-bar"></i> Traffic Analysis</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="trafficChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Model Information -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-dark text-white">
+                        <h5><i class="fas fa-info-circle"></i> Model Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="modelInfo" class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">Loading model information...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let waypoints = [];
+        let trafficChart = null;
+
+        // Initialize timestamp to current time
+        document.getElementById('timestamp').value = new Date().toISOString().slice(0, 16);
+
+        // Form submission
+        document.getElementById('predictionForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const lat = parseFloat(document.getElementById('latitude').value);
+            const lon = parseFloat(document.getElementById('longitude').value);
+            const timestamp = document.getElementById('timestamp').value;
+            
+            if (isNaN(lat) || isNaN(lon)) {
+                alert('Please enter valid coordinates');
+                return;
+            }
+            
+            await predictTraffic(lat, lon, timestamp);
+        });
+
+        async function predictTraffic(lat, lon, timestamp) {
+            try {
+                const response = await fetch('/api/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        latitude: lat,
+                        longitude: lon,
+                        timestamp: timestamp
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    displayPrediction(result);
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        function displayPrediction(result) {
+            const prediction = result.prediction;
+            const trafficLevel = getTrafficLevel(prediction);
+            const trafficClass = getTrafficClass(prediction);
+            
+            const html = `
+                <div class="prediction-card">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h4><span class="traffic-indicator ${trafficClass}"></span>${trafficLevel}</h4>
+                            <h2>${prediction.toFixed(1)}%</h2>
+                            <p class="mb-0">Road Occupancy</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Location:</strong> ${result.location.lat.toFixed(4)}, ${result.location.lon.toFixed(4)}</p>
+                            <p><strong>Time:</strong> ${new Date(result.timestamp).toLocaleString()}</p>
+                            <p><strong>Confidence:</strong> ${result.confidence}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('predictionResults').innerHTML = html;
+        }
+
+        function getTrafficLevel(prediction) {
+            if (prediction < 30) return 'Low Traffic';
+            if (prediction < 70) return 'Medium Traffic';
+            return 'High Traffic';
+        }
+
+        function getTrafficClass(prediction) {
+            if (prediction < 30) return 'traffic-low';
+            if (prediction < 70) return 'traffic-medium';
+            return 'traffic-high';
+        }
+
+        function addWaypoint() {
+            const waypointDiv = document.createElement('div');
+            waypointDiv.className = 'waypoint-item mb-2 p-2 border rounded';
+            waypointDiv.innerHTML = `
+                <div class="row">
+                    <div class="col-md-4">
+                        <input type="number" class="form-control form-control-sm" placeholder="Lat" step="any">
+                    </div>
+                    <div class="col-md-4">
+                        <input type="number" class="form-control form-control-sm" placeholder="Lon" step="any">
+                    </div>
+                    <div class="col-md-4">
+                        <button type="button" class="btn btn-danger btn-sm" onclick="removeWaypoint(this)">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('waypoints').appendChild(waypointDiv);
+        }
+
+        function removeWaypoint(button) {
+            button.closest('.waypoint-item').remove();
+        }
+
+        async function predictRoute() {
+            const waypointElements = document.querySelectorAll('.waypoint-item');
+            const routeWaypoints = [];
+            
+            waypointElements.forEach((element, index) => {
+                const inputs = element.querySelectorAll('input');
+                const lat = parseFloat(inputs[0].value);
+                const lon = parseFloat(inputs[1].value);
+                
+                if (!isNaN(lat) && !isNaN(lon)) {
+                    routeWaypoints.push({ latitude: lat, longitude: lon });
+                }
+            });
+            
+            if (routeWaypoints.length < 2) {
+                alert('Please add at least 2 waypoints');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/predict_route', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        waypoints: routeWaypoints
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    displayRoutePrediction(result);
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        function displayRoutePrediction(result) {
+            const html = `
+                <div class="prediction-card">
+                    <h4><i class="fas fa-route"></i> Route Analysis</h4>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h5>${result.summary.average_traffic.toFixed(1)}%</h5>
+                            <p>Average Traffic</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h5>${result.summary.max_traffic.toFixed(1)}%</h5>
+                            <p>Peak Traffic</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h5>${result.summary.min_traffic.toFixed(1)}%</h5>
+                            <p>Lowest Traffic</p>
+                        </div>
+                    </div>
+                    <hr>
+                    <h6>Waypoint Details:</h6>
+                    ${result.route_predictions.map((wp, i) => `
+                        <div class="d-flex justify-content-between">
+                            <span>Waypoint ${i + 1}: ${wp.prediction.toFixed(1)}%</span>
+                            <span class="badge ${getTrafficClass(wp.prediction)}">${getTrafficLevel(wp.prediction)}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            
+            document.getElementById('predictionResults').innerHTML = html;
+            
+            // Update chart
+            updateTrafficChart(result.route_predictions);
+        }
+
+        function updateTrafficChart(predictions) {
+            const ctx = document.getElementById('trafficChart').getContext('2d');
+            
+            if (trafficChart) {
+                trafficChart.destroy();
+            }
+            
+            trafficChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: predictions.map((_, i) => `Waypoint ${i + 1}`),
+                    datasets: [{
+                        label: 'Traffic Prediction (%)',
+                        data: predictions.map(p => p.prediction),
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+
+        // Load model information
+        async function loadModelInfo() {
+            try {
+                const response = await fetch('/api/model_info');
+                const info = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('modelInfo').innerHTML = `
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Model Type: ${info.model_type}</h6>
+                                <h6>Sequence Length: ${info.sequence_length}</h6>
+                                <h6>Features: ${info.n_features}</h6>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>RMSE: ${info.model_performance.rmse.toFixed(4)}</h6>
+                                <h6>MAE: ${info.model_performance.mae.toFixed(4)}</h6>
+                                <h6>R²: ${info.model_performance.r2.toFixed(4)}</h6>
+                            </div>
+                        </div>
+                        <p class="text-muted mt-3">Model trained on: ${new Date(info.training_date).toLocaleDateString()}</p>
+                    `;
+                } else {
+                    document.getElementById('modelInfo').innerHTML = '<p class="text-danger">Error loading model information</p>';
+                }
+            } catch (error) {
+                document.getElementById('modelInfo').innerHTML = '<p class="text-danger">Error: ' + error.message + '</p>';
+            }
+        }
+
+        // Load model info on page load
+        loadModelInfo();
+    </script>
+</body>
+</html>

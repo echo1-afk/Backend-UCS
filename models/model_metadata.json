@@ -1,0 +1,37 @@
+{
+  "model_type": "LSTM",
+  "sequence_length": 24,
+  "n_features": 22,
+  "target_column": "Road_Occupancy_%",
+  "feature_columns": [
+    "Latitude",
+    "Longitude",
+    "Vehicle_Count",
+    "Traffic_Speed_kmh",
+    "Accident_Report",
+    "Sentiment_Score",
+    "Ride_Sharing_Demand",
+    "Parking_Availability",
+    "Emission_Levels_g_km",
+    "Energy_Consumption_L_h",
+    "hour",
+    "dow",
+    "is_weekend",
+    "hour_sin",
+    "hour_cos",
+    "Traffic_Light_State_Red",
+    "Traffic_Light_State_Yellow",
+    "Weather_Condition_Fog",
+    "Weather_Condition_Rain",
+    "Weather_Condition_Snow",
+    "Traffic_Condition_Low",
+    "Traffic_Condition_Medium"
+  ],
+  "training_date": "2025-10-25T21:22:58.497212",
+  "model_performance": {
+    "rmse": 26.204134428310773,
+    "mae": 22.620868226288483,
+    "r2": -0.01679535090117823,
+    "mape": 66.66058518468851
+  }
+}
